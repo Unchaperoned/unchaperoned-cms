@@ -54,3 +54,4 @@ docker run -p 2368:2368 \
   -e database__client=sqlite3 \
   ghost-cms-local
 ```
+# Build trigger test Sun Feb 22 12:43:03 EST 2026
