@@ -1,6 +1,6 @@
 #!/bin/sh
-# Ghost Entrypoint — R2 Adapter + Casper Theme
-# Copies both the R2 storage adapter and the Casper theme from /opt into
+# Ghost Entrypoint — R2 Adapter + All Built-in Themes
+# Copies both the R2 storage adapter and ALL built-in themes from /opt into
 # /var/lib/ghost/content/ at container startup, then starts Ghost.
 # This is needed because Cloud Run wipes the content volume on every restart.
 set -e
@@ -18,17 +18,20 @@ else
     echo "[entrypoint] WARNING: R2 adapter source not found at $ADAPTER_SRC"
 fi
 
-# ── Casper Theme ─────────────────────────────────────────────────────────────
-THEME_SRC="/opt/ghost-themes/casper"
-THEME_DST="/var/lib/ghost/content/themes/casper"
+# ── All Built-in Themes ───────────────────────────────────────────────────────
+# Restore all themes staged at /opt/ghost-themes (casper, source, etc.)
+# so whichever theme is active in the Ghost database will be available.
+THEMES_SRC="/opt/ghost-themes"
+THEMES_DST="/var/lib/ghost/content/themes"
 
-if [ -d "$THEME_SRC" ]; then
-    echo "[entrypoint] Installing Casper theme..."
-    mkdir -p "/var/lib/ghost/content/themes"
-    cp -r "$THEME_SRC" "$THEME_DST"
-    echo "[entrypoint] Casper theme installed at $THEME_DST"
+if [ -d "$THEMES_SRC" ]; then
+    echo "[entrypoint] Installing all built-in themes..."
+    mkdir -p "$THEMES_DST"
+    cp -r "$THEMES_SRC/." "$THEMES_DST/"
+    echo "[entrypoint] Themes installed at $THEMES_DST:"
+    ls "$THEMES_DST"
 else
-    echo "[entrypoint] WARNING: Casper theme source not found at $THEME_SRC"
+    echo "[entrypoint] WARNING: Themes source not found at $THEMES_SRC"
 fi
 
 # ── Start Ghost ───────────────────────────────────────────────────────────────
