@@ -1,0 +1,56 @@
+# cloudbuild.yaml — Unchaperoned CMS (Ghost)
+# Triggered by push to main branch.
+# Steps: build Ghost Docker image → push to Artifact Registry → deploy to Cloud Run.
+#
+# Artifact Registry: us-west1-docker.pkg.dev/unchaperoned/ghost-cms
+# Cloud Run service: ghost-cms (us-west1)
+# Live URL: https://cms.unchaperonedlife.com
+
+substitutions:
+  _REGION: us-west1
+  _SERVICE_NAME: ghost-cms
+  _AR_REPO: us-west1-docker.pkg.dev/unchaperoned/ghost-cms
+  _IMAGE_NAME: ghost-cms-r2
+
+steps:
+  # ── Step 1: Build the Ghost Docker image ───────────────────────────────────
+  - name: "gcr.io/cloud-builders/docker"
+    id: Build
+    args:
+      - build
+      - "--tag"
+      - "${_AR_REPO}/${_IMAGE_NAME}:$COMMIT_SHA"
+      - "--tag"
+      - "${_AR_REPO}/${_IMAGE_NAME}:latest"
+      - "--cache-from"
+      - "${_AR_REPO}/${_IMAGE_NAME}:latest"
+      - "."
+
+  # ── Step 2: Push image to Artifact Registry ─────────────────────────────────
+  - name: "gcr.io/cloud-builders/docker"
+    id: Push
+    args:
+      - push
+      - "--all-tags"
+      - "${_AR_REPO}/${_IMAGE_NAME}"
+
+  # ── Step 3: Deploy to Cloud Run ─────────────────────────────────────────────
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    id: Deploy
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - "${_SERVICE_NAME}"
+      - "--image=${_AR_REPO}/${_IMAGE_NAME}:$COMMIT_SHA"
+      - "--region=${_REGION}"
+      - "--platform=managed"
+      - "--allow-unauthenticated"
+      - "--port=2368"
+
+images:
+  - "${_AR_REPO}/${_IMAGE_NAME}:$COMMIT_SHA"
+  - "${_AR_REPO}/${_IMAGE_NAME}:latest"
+
+options:
+  logging: CLOUD_LOGGING_ONLY
